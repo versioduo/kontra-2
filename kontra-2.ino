@@ -1,6 +1,7 @@
 // © Kay Sievers <kay@versioduo.com>, 2020-2022
 // SPDX-License-Identifier: Apache-2.0
 
+#include "MIDISong.h"
 #include <V2Buttons.h>
 #include <V2Color.h>
 #include <V2Device.h>
@@ -15,6 +16,58 @@ static constexpr uint8_t notesMax = 30;
 static V2LED::WS2812 LED(2, PIN_LED_WS2812, &sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
 static V2LED::WS2812 LEDExt(41, PIN_LED_WS2812_EXT, &sercom1, SPI_PAD_0_SCK_1, PIO_SERCOM);
 static V2Link::Port Socket(&SerialSocket);
+
+// The button switches the state with a multi-click long-press.
+static class Manual {
+public:
+  enum class Mode { Notes, Song, Test, Tune, Turn } mode{};
+  Mode getMode() const {
+    return _mode;
+  }
+
+  void setMode(Mode mode = Mode::Notes) {
+    _mode = mode;
+
+    switch (_mode) {
+      case Mode::Notes:
+        LED.reset();
+        LED.setHSV(V2Color::Orange, 1, 0.25);
+        break;
+
+      case Mode::Song:
+        LED.reset();
+        LED.setBrightness(0.25);
+        break;
+
+      case Mode::Test:
+        LED.reset();
+        LED.rainbow(1, 3, 0.4);
+        break;
+
+      case Mode::Tune:
+        LED.reset();
+        LED.setHSV(V2Color::Magenta, 1, 0.25);
+        break;
+
+      case Mode::Turn:
+        LED.reset();
+        LED.setHSV(V2Color::Cyan, 1, 0.25);
+        break;
+    }
+  }
+
+  void setColor(V2Color::Hue color) {
+    LED.reset();
+    LED.setHSV(color, 1, 0.25);
+  }
+
+  void splashColor(V2Color::Hue color) {
+    LED.splashHSV(0.5, color, 1, 0.25);
+  }
+
+private:
+  Mode _mode{};
+} Manual;
 
 static constexpr struct Configuration {
   struct {
@@ -81,6 +134,7 @@ public:
     if (note >= Config.notes.start + Config.notes.count)
       return;
 
+    led.flash(0.03, 0.3);
     routeStrings(note, velocity);
   }
 
@@ -96,7 +150,18 @@ public:
 
   void setProgram(Program number) {
     _program = number;
-    LED.setHSV(_programs[(uint8_t)_program].color, 1, 0.25);
+
+    switch (Manual.getMode()) {
+      case Manual::Mode::Notes:
+        Manual.setColor(_programs[(uint8_t)_program].color);
+        break;
+
+      case Manual::Mode::Song:
+      case Manual::Mode::Test:
+        Manual.splashColor(_programs[(uint8_t)_program].color);
+        break;
+    }
+
     sendAllStrings(_midi.setProgram(0, _programs[(uint8_t)_program].number));
   }
 
@@ -116,7 +181,7 @@ private:
   const struct {
     uint8_t number;
     const char *name;
-    const float color;
+    V2Color::Hue color;
   } _programs[(uint8_t)Program::_count]{
     [(uint8_t)Program::Bow] =
       {
@@ -167,8 +232,7 @@ private:
     _aftertouch  = 0;
     _route       = {};
 
-    LED.reset();
-    LED.setHSV(_programs[(uint8_t)_program].color, 1, 0.25);
+    Manual.setMode();
     LEDExt.reset();
   }
 
@@ -487,6 +551,12 @@ private:
     jsonNotes["#count"]  = "Total number of notes ";
     jsonNotes["count"]   = Config.notes.count;
   }
+
+  virtual void exportSystemMIDIFile(JsonObject json);
+
+  void exportSystem(JsonObject json) override {
+    exportSystemMIDIFile(json);
+  }
 } Device;
 
 // Dispatch MIDI packets
@@ -533,18 +603,51 @@ private:
   }
 } Link;
 
+static class MIDIFile : public V2MIDI::File::Tracks {
+public:
+  MIDIFile() : V2MIDI::File::Tracks(MIDISong) {}
+
+private:
+  bool handleSend(uint16_t track, V2MIDI::Packet *packet) override {
+    Device.dispatch(&Device.usb.midi, packet);
+    return true;
+  }
+
+  void handleStateChange(V2MIDI::File::Tracks::State state) override {
+    switch (state) {
+      case V2MIDI::File::Tracks::State::Stop:
+        Device.allNotesOff();
+        for (uint8_t i = 0; i < 8; i++) {
+          V2MIDI::Packet midi;
+
+          midi.setPort(i);
+          Socket.send(midi.setControlChange(0, V2MIDI::CC::AllNotesOff, 0));
+        }
+        break;
+    }
+  }
+} MIDIFile;
+
+void Device::exportSystemMIDIFile(JsonObject json) {
+  JsonObject jsonTrack = json.createNestedObject("track");
+  char s[128];
+  if (MIDIFile.copyTag(V2MIDI::File::Event::Meta::Title, s, sizeof(s)) > 0)
+    jsonTrack["title"] = s;
+
+  if (MIDIFile.copyTag(V2MIDI::File::Event::Meta::Copyright, s, sizeof(s)) > 0)
+    jsonTrack["creator"] = s;
+}
+
 static class {
 public:
   void stop() {
-    Device.reset();
     Device.allNotesOff();
     _enabled = false;
   }
 
-  void run(Device::Program program) {
-    Device.reset();
-    Device.allNotesOff();
-    Device.setProgram(program);
+  void play(Device::Program program) {
+    LEDExt.reset();
+    LEDExt.rainbow(2, 3, 1, true);
 
     _enabled  = true;
     _velocity = 10;
@@ -555,19 +658,17 @@ public:
     if (!_enabled)
       return;
 
-    play();
+    playNote();
   }
 
 private:
-  void play() {
+  void playNote() {
     if (V2Base::getUsecSince(_play.usec) < 500 * 1000)
       return;
 
     _play.usec = V2Base::getUsec();
 
     if (_play.note == 0) {
-      LEDExt.rainbow(2, 3, 1, true);
-
       _play.note = Config.notes.start;
       Device.playNote(_play.note, _velocity);
       Device.playNote(_play.note, _velocity);
@@ -583,8 +684,10 @@ private:
       _play.note = 0;
 
       _velocity += 25;
-      if (_velocity > 127)
-        _velocity = 10;
+      if (_velocity > 127) {
+        stop();
+        _enabled = false;
+      }
     }
   }
 
@@ -604,22 +707,40 @@ private:
   const V2Buttons::Config _config{.clickUsec{200 * 1000}, .holdUsec{500 * 1000}};
 
   void handleClick(uint8_t count) override {
-    if (count >= (uint8_t)Device::Program::_count)
-      return;
+    switch (count) {
+      case 0:
+        MIDIFile.stop();
+        TestMode.stop();
+        Device.reset();
+        Device.allNotesOff();
+        break;
 
-    Device.reset();
-    Device.setProgram((Device::Program)count);
+      case 1 ... static_cast<uint8_t>(Device::Program::_count):
+        Device.setProgram(static_cast<Device::Program>(count - 1));
+        break;
+
+      case static_cast<uint8_t>(Device::Program::_count) + 1:
+        MIDIFile.stop();
+        TestMode.stop();
+        Device.reset();
+        break;
+    }
   }
 
   void handleHold(uint8_t count) override {
-    if (count >= (uint8_t)Device::Program::_count)
-      return;
+    switch (count) {
+      case 0:
+        Device.allNotesOff();
+        Manual.setMode(Manual::Mode::Song);
+        MIDIFile.play();
+        break;
 
-    TestMode.run((Device::Program)count);
-  }
-
-  void handleRelease() override {
-    TestMode.stop();
+      case 1:
+        Device.allNotesOff();
+        Manual.setMode(Manual::Mode::Test);
+        TestMode.play(Device::Program::Bow);
+        break;
+    }
   }
 } Button;
 
@@ -652,8 +773,17 @@ void loop() {
   MIDI.loop();
   Link.loop();
   V2Buttons::loop();
-  TestMode.loop();
   Device.loop();
+
+  switch (Manual.getMode()) {
+    case Manual::Mode::Song:
+      MIDIFile.loop();
+      break;
+
+    case Manual::Mode::Test:
+      TestMode.loop();
+      break;
+  }
 
   if (Link.idle() && Device.idle())
     Device.sleep();
