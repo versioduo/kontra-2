@@ -10,7 +10,7 @@
 #include <V2MIDI.h>
 #include <V2Music.h>
 
-V2DEVICE_METADATA("com.versioduo.kontra-2", 30, "versioduo:samd:control");
+V2DEVICE_METADATA("com.versioduo.kontra-2", 31, "versioduo:samd:control");
 
 static constexpr uint8_t notesMax = 30;
 static V2LED::WS2812 LED(2, PIN_LED_WS2812, &sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
@@ -77,7 +77,9 @@ static constexpr struct Configuration {
   } notes;
 } ConfigurationDefault;
 
-static struct Configuration Config { ConfigurationDefault };
+static struct Configuration Config {
+  ConfigurationDefault
+};
 
 static class Device : public V2Device {
 public:
@@ -102,8 +104,8 @@ public:
   enum class CC {
     Volume       = V2MIDI::CC::ChannelVolume,
     FingerSpeed  = V2MIDI::CC::Controller3,
-    VibratoSpeed = V2MIDI::CC::EffectControl1,
-    VibratoRange = V2MIDI::CC::EffectControl2,
+    VibratoRate  = V2MIDI::CC::SoundController7,
+    VibratoDepth = V2MIDI::CC::SoundController8,
     BowPressure  = V2MIDI::CC::SoundController5,
     BowSpeed     = V2MIDI::CC::ModulationWheel,
     BowReverse   = V2MIDI::CC::Controller14,
@@ -203,8 +205,8 @@ private:
   float _rotationMax{1};
   bool _reverse{};
   struct {
-    float speed{};
-    float range{0.5};
+    float rate{};
+    float depth{0.5};
   } _vibrato;
   float _pressureMax{1};
   float _lightMax{100.f / 127.f};
@@ -224,8 +226,8 @@ private:
     _speedMax      = 100.f / 127.f;
     _rotationMax   = 1;
     _reverse       = false;
-    _vibrato.speed = 0;
-    _vibrato.range = 0.5;
+    _vibrato.rate  = 0;
+    _vibrato.depth = 0.5;
 
     _pressureMax = 1;
     _lightMax    = 100.f / 127.f;
@@ -339,13 +341,13 @@ private:
         sendAllStrings(_midi.setControlChange(0, controller, value));
         break;
 
-      case (uint8_t)CC::VibratoSpeed:
-        _vibrato.speed = (float)value / 127.f;
+      case (uint8_t)CC::VibratoRate:
+        _vibrato.rate = (float)value / 127.f;
         sendAllStrings(_midi.setControlChange(0, controller, value));
         break;
 
-      case (uint8_t)CC::VibratoRange:
-        _vibrato.range = (float)value / 127.f;
+      case (uint8_t)CC::VibratoDepth:
+        _vibrato.depth = (float)value / 127.f;
         sendAllStrings(_midi.setControlChange(0, controller, value));
         break;
 
@@ -441,15 +443,15 @@ private:
     }
     {
       JsonObject jsonController = jsonControllers.createNestedObject();
-      jsonController["name"]    = "Vibrato Speed";
-      jsonController["number"]  = (uint8_t)CC::VibratoSpeed;
-      jsonController["value"]   = (uint8_t)(_vibrato.speed * 127.f);
+      jsonController["name"]    = "Vibrato Rate";
+      jsonController["number"]  = (uint8_t)CC::VibratoRate;
+      jsonController["value"]   = (uint8_t)(_vibrato.rate * 127.f);
     }
     {
       JsonObject jsonController = jsonControllers.createNestedObject();
-      jsonController["name"]    = "Vibrato Range";
-      jsonController["number"]  = (uint8_t)CC::VibratoRange;
-      jsonController["value"]   = (uint8_t)(_vibrato.range * 127.f);
+      jsonController["name"]    = "Vibrato Depth";
+      jsonController["number"]  = (uint8_t)CC::VibratoDepth;
+      jsonController["value"]   = (uint8_t)(_vibrato.depth * 127.f);
     }
     {
       JsonObject jsonController = jsonControllers.createNestedObject();
