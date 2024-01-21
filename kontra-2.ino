@@ -423,85 +423,85 @@ private:
   }
 
   void exportInput(JsonObject json) override {
-    JsonObject jsonAftertouch = json.createNestedObject("aftertouch");
+    JsonObject jsonAftertouch = json["aftertouch"].to<JsonObject>();
     jsonAftertouch["value"]   = _aftertouch;
 
-    JsonObject jsonPitchbend = json.createNestedObject("pitchbend");
+    JsonObject jsonPitchbend = json["pitchbend"].to<JsonObject>();
 
-    JsonArray jsonControllers = json.createNestedArray("controllers");
+    JsonArray jsonControllers = json["controllers"].to<JsonArray>();
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Volume";
       jsonController["number"]  = (uint8_t)CC::Volume;
       jsonController["value"]   = _volume;
     }
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Finger Speed";
       jsonController["number"]  = (uint8_t)CC::FingerSpeed;
       jsonController["value"]   = (uint8_t)(_speedMax * 127.f);
     }
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Vibrato Rate";
       jsonController["number"]  = (uint8_t)CC::VibratoRate;
       jsonController["value"]   = (uint8_t)(_vibrato.rate * 127.f);
     }
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Vibrato Depth";
       jsonController["number"]  = (uint8_t)CC::VibratoDepth;
       jsonController["value"]   = (uint8_t)(_vibrato.depth * 127.f);
     }
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Bow Pressure";
       jsonController["number"]  = (uint8_t)CC::BowPressure;
       jsonController["value"]   = (uint8_t)(_pressureMax * 127.f);
     }
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Bow Speed";
       jsonController["number"]  = (uint8_t)CC::BowSpeed;
       jsonController["value"]   = (uint8_t)(_rotationMax * 127.f);
     }
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Bow Reverse";
       jsonController["type"]    = "toggle";
       jsonController["number"]  = (uint8_t)CC::BowReverse;
       jsonController["value"]   = (uint8_t)(_reverse ? 127 : 0);
     }
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Brightness";
       jsonController["number"]  = (uint8_t)CC::Light;
       jsonController["value"]   = (uint8_t)(_lightMax * 127.f);
     }
     {
-      JsonObject jsonController = jsonControllers.createNestedObject();
+      JsonObject jsonController = jsonControllers.add<JsonObject>();
       jsonController["name"]    = "Rainbow";
       jsonController["number"]  = (uint8_t)CC::Rainbow;
       jsonController["value"]   = (uint8_t)(_rainbow * 127.f);
     }
 
-    JsonArray jsonPrograms = json.createNestedArray("programs");
+    JsonArray jsonPrograms = json["programs"].to<JsonArray>();
     for (uint8_t i = 0; i < (uint8_t)Program::_count; i++) {
-      JsonObject jsonProgram = jsonPrograms.createNestedObject();
+      JsonObject jsonProgram = jsonPrograms.add<JsonObject>();
       jsonProgram["name"]    = _programs[i].name;
       jsonProgram["number"]  = _programs[i].number;
       if (i == (uint8_t)_program)
         jsonProgram["selected"] = true;
     }
 
-    JsonObject jsonChromatic = json.createNestedObject("chromatic");
+    JsonObject jsonChromatic = json["chromatic"].to<JsonObject>();
     jsonChromatic["start"]   = Config.notes.start;
     jsonChromatic["count"]   = Config.notes.count;
   }
 
   void exportSettings(JsonArray json) override {
     {
-      JsonObject setting = json.createNestedObject();
+      JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "note";
       setting["title"]   = "Notes";
       setting["label"]   = "Start";
@@ -509,7 +509,7 @@ private:
       setting["path"]    = "notes/start";
     }
     {
-      JsonObject setting = json.createNestedObject();
+      JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "number";
       setting["label"]   = "Count";
       setting["min"]     = 1;
@@ -547,7 +547,7 @@ private:
   }
 
   void exportConfiguration(JsonObject json) override {
-    JsonObject jsonNotes = json.createNestedObject("notes");
+    JsonObject jsonNotes = json["notes"].to<JsonObject>();
     jsonNotes["#start"]  = "First note";
     jsonNotes["start"]   = Config.notes.start;
     jsonNotes["#count"]  = "Total number of notes ";
@@ -631,7 +631,7 @@ private:
 } MIDIFile;
 
 void Device::exportSystemMIDIFile(JsonObject json) {
-  JsonObject jsonTrack = json.createNestedObject("track");
+  JsonObject jsonTrack = json["track"].to<JsonObject>();
   char s[128];
   if (MIDIFile.copyTag(V2MIDI::File::Event::Meta::Title, s, sizeof(s)) > 0)
     jsonTrack["title"] = s;
