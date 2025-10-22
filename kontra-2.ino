@@ -10,12 +10,12 @@
 #include <V2MIDI.h>
 #include <V2Music.h>
 
-V2DEVICE_METADATA("com.versioduo.kontra-2", 31, "versioduo:samd:control");
+V2DEVICE_METADATA("com.versioduo.kontra-2", 32, "versioduo:samd:control");
 
 static constexpr uint8_t notesMax = 30;
-static V2LED::WS2812 LED(2, PIN_LED_WS2812, &sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
-static V2LED::WS2812 LEDExt(41, PIN_LED_WS2812_EXT, &sercom1, SPI_PAD_0_SCK_1, PIO_SERCOM);
-static V2Link::Port Socket(&SerialSocket);
+static V2LED::WS2812     LED(2, PIN_LED_WS2812, &sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
+static V2LED::WS2812     LEDExt(41, PIN_LED_WS2812_EXT, &sercom1, SPI_PAD_0_SCK_1, PIO_SERCOM);
+static V2Link::Port      Socket(&SerialSocket);
 
 // The button switches the state with a multi-click long-press.
 static class Manual {
@@ -77,9 +77,7 @@ static constexpr struct Configuration {
   } notes;
 } ConfigurationDefault;
 
-static struct Configuration Config {
-  ConfigurationDefault
-};
+static struct Configuration Config{ConfigurationDefault};
 
 static class Device : public V2Device {
 public:
@@ -181,8 +179,8 @@ private:
   V2Music::ForcedStop _force;
 
   const struct {
-    uint8_t number;
-    const char *name;
+    uint8_t      number;
+    const char*  name;
     V2Color::Hue color;
   } _programs[(uint8_t)Program::_count]{
     [(uint8_t)Program::Bow] =
@@ -201,16 +199,16 @@ private:
   Program _program{};
 
   uint8_t _volume{100};
-  float _speedMax{100.f / 127.f};
-  float _rotationMax{1};
-  bool _reverse{};
+  float   _speedMax{100.f / 127.f};
+  float   _rotationMax{1};
+  bool    _reverse{};
   struct {
     float rate{};
     float depth{0.5};
   } _vibrato;
-  float _pressureMax{1};
-  float _lightMax{100.f / 127.f};
-  float _rainbow{};
+  float   _pressureMax{1};
+  float   _lightMax{100.f / 127.f};
+  float   _rainbow{};
   uint8_t _aftertouch{};
 
   V2MIDI::Packet _midi{};
@@ -242,7 +240,7 @@ private:
     _program = Program::Bow;
     _force.reset();
     stop();
-    sendAllStrings(_midi.set(0, V2MIDI::Packet::Status::SystemReset, 0, 0));
+    sendAllStrings(_midi.setSystem(V2MIDI::Packet::Status::SystemReset));
   }
 
   void routeStrings(uint8_t note, uint8_t velocity) {
@@ -308,12 +306,12 @@ private:
     }
   }
 
-  void sendString(uint8_t n, V2MIDI::Packet *packet) {
+  void sendString(uint8_t n, V2MIDI::Packet* packet) {
     _link.send(packet);
     Socket.send(n, &_link);
   }
 
-  void sendAllStrings(V2MIDI::Packet *packet) {
+  void sendAllStrings(V2MIDI::Packet* packet) {
     sendString(0, packet);
     sendString(1, packet);
   }
@@ -532,11 +530,13 @@ private:
 
       if (!jsonNotes["count"].isNull()) {
         uint8_t count = jsonNotes["count"];
-        if (count < 1)
+        if (count < 1) {
           count = 1;
+        }
 
-        else if (count > notesMax)
+        else if (count > notesMax) {
           count = notesMax;
+        }
 
         if (count > 128 - Config.notes.start)
           count = 128 - Config.notes.start;
@@ -590,7 +590,7 @@ private:
   V2MIDI::Packet _midi{};
 
   // Forward children device events to the host
-  void receiveSocket(V2Link::Packet *packet) override {
+  void receiveSocket(V2Link::Packet* packet) override {
     if (packet->getType() == V2Link::Packet::Type::MIDI) {
       uint8_t address = packet->getAddress();
       if (address == 0x0f)
@@ -610,7 +610,7 @@ public:
   MIDIFile() : V2MIDI::File::Tracks(MIDISong) {}
 
 private:
-  bool handleSend(uint16_t track, V2MIDI::Packet *packet) override {
+  bool handleSend(uint16_t track, V2MIDI::Packet* packet) override {
     Device.dispatch(&Device.usb.midi, packet);
     return true;
   }
@@ -632,7 +632,7 @@ private:
 
 void Device::exportSystemMIDIFile(JsonObject json) {
   JsonObject jsonTrack = json["track"].to<JsonObject>();
-  char s[128];
+  char       s[128];
   if (MIDIFile.copyTag(V2MIDI::File::Event::Meta::Title, s, sizeof(s)) > 0)
     jsonTrack["title"] = s;
 
@@ -693,10 +693,10 @@ private:
     }
   }
 
-  bool _enabled{};
+  bool    _enabled{};
   uint8_t _velocity{};
   struct {
-    uint8_t note;
+    uint8_t  note;
     uint32_t usec;
   } _play{};
 } TestMode;
