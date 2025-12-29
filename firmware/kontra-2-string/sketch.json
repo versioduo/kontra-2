@@ -1,0 +1,6 @@
+{
+  "cpu": {
+    "fqbn": "versioduo:samd:step",
+    "name": "V2 kontra-2-string"
+  }
+}
