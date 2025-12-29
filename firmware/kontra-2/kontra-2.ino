@@ -52,13 +52,13 @@ public:
     }
   }
 
-  void setColour(V2Colour::Hue color) {
+  void setColour(V2Colour::Hue colour) {
     LED.reset();
-    LED.setHSV(color, 1, 0.25);
+    LED.setHSV(colour, 1, 0.25);
   }
 
-  void splashColour(V2Colour::Hue color) {
-    LED.splashHSV(0.5, color, 1, 0.25);
+  void splashColour(V2Colour::Hue colour) {
+    LED.splashHSV(0.5, colour, 1, 0.25);
   }
 
 private:
@@ -149,12 +149,12 @@ public:
 
     switch (Manual.getMode()) {
       case Manual::Mode::Notes:
-        Manual.setColour(_programs[(uint8_t)_program].color);
+        Manual.setColour(_programs[(uint8_t)_program].colour);
         break;
 
       case Manual::Mode::Song:
       case Manual::Mode::Test:
-        Manual.splashColour(_programs[(uint8_t)_program].color);
+        Manual.splashColour(_programs[(uint8_t)_program].colour);
         break;
     }
 
@@ -177,19 +177,19 @@ private:
   const struct {
     uint8_t       number;
     const char*   name;
-    V2Colour::Hue color;
+    V2Colour::Hue colour;
   } _programs[(uint8_t)Program::_count]{
     [(uint8_t)Program::Bow] =
       {
         .number{V2MIDI::GM::Program::Contrabass},
         .name{"Bow"},
-        .color{V2Colour::Orange},
+        .colour{V2Colour::Orange},
       },
     [(uint8_t)Program::Pluck] =
       {
         .number{V2MIDI::GM::Program::PizzicatoStrings},
         .name{"Pizzicato"},
-        .color{V2Colour::Cyan},
+        .colour{V2Colour::Cyan},
       },
   };
   Program _program{};
