@@ -1,9 +1,5 @@
-// © Kay Sievers <kay@versioduo.com>, 2020-2022
-// SPDX-License-Identifier: Apache-2.0
-
 #include "MIDISong.h"
 #include <V2Buttons.h>
-#include <V2Color.h>
 #include <V2Device.h>
 #include <V2LED.h>
 #include <V2Link.h>
@@ -31,7 +27,7 @@ public:
     switch (_mode) {
       case Mode::Notes:
         LED.reset();
-        LED.setHSV(V2Color::Orange, 1, 0.25);
+        LED.setHSV(V2Colour::Orange, 1, 0.25);
         break;
 
       case Mode::Song:
@@ -46,22 +42,22 @@ public:
 
       case Mode::Tune:
         LED.reset();
-        LED.setHSV(V2Color::Magenta, 1, 0.25);
+        LED.setHSV(V2Colour::Magenta, 1, 0.25);
         break;
 
       case Mode::Turn:
         LED.reset();
-        LED.setHSV(V2Color::Cyan, 1, 0.25);
+        LED.setHSV(V2Colour::Cyan, 1, 0.25);
         break;
     }
   }
 
-  void setColor(V2Color::Hue color) {
+  void setColour(V2Colour::Hue color) {
     LED.reset();
     LED.setHSV(color, 1, 0.25);
   }
 
-  void splashColor(V2Color::Hue color) {
+  void splashColour(V2Colour::Hue color) {
     LED.splashHSV(0.5, color, 1, 0.25);
   }
 
@@ -124,7 +120,7 @@ public:
     }
 
     const float fraction = (float)velocity / 127;
-    LEDExt.setHSV(n, V2Color::Yellow, 0.2, fraction * _lightMax);
+    LEDExt.setHSV(n, V2Colour::Yellow, 0.2, fraction * _lightMax);
   }
 
   void playNote(uint8_t note, uint8_t velocity) {
@@ -153,12 +149,12 @@ public:
 
     switch (Manual.getMode()) {
       case Manual::Mode::Notes:
-        Manual.setColor(_programs[(uint8_t)_program].color);
+        Manual.setColour(_programs[(uint8_t)_program].color);
         break;
 
       case Manual::Mode::Song:
       case Manual::Mode::Test:
-        Manual.splashColor(_programs[(uint8_t)_program].color);
+        Manual.splashColour(_programs[(uint8_t)_program].color);
         break;
     }
 
@@ -179,21 +175,21 @@ private:
   V2Music::ForcedStop _force;
 
   const struct {
-    uint8_t      number;
-    const char*  name;
-    V2Color::Hue color;
+    uint8_t       number;
+    const char*   name;
+    V2Colour::Hue color;
   } _programs[(uint8_t)Program::_count]{
     [(uint8_t)Program::Bow] =
       {
         .number{V2MIDI::GM::Program::Contrabass},
         .name{"Bow"},
-        .color{V2Color::Orange},
+        .color{V2Colour::Orange},
       },
     [(uint8_t)Program::Pluck] =
       {
         .number{V2MIDI::GM::Program::PizzicatoStrings},
         .name{"Pizzicato"},
-        .color{V2Color::Cyan},
+        .color{V2Colour::Cyan},
       },
   };
   Program _program{};
