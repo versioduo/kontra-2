@@ -81,7 +81,7 @@ private:
 
 static class Power : public V2PowerSupply {
 public:
-  Power() : V2PowerSupply({.min{6}, .max{26}}) {}
+  Power() : V2PowerSupply({.min{12}, .max{30}}) {}
 
   void begin() {
     pinMode(PIN_DRIVER_ENABLE, OUTPUT);
