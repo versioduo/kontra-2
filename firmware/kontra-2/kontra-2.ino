@@ -6,7 +6,7 @@
 #include <V2MIDI.h>
 #include <V2Music.h>
 
-V2DEVICE_METADATA("com.versioduo.kontra-2", 32, "versioduo:samd:control");
+V2DEVICE_METADATA("com.versioduo.kontra-2", 33, "versioduo:samd:control");
 
 static constexpr uint8_t notesMax = 30;
 static V2LED::WS2812     LED(2, PIN_LED_WS2812, &sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
@@ -158,7 +158,7 @@ public:
         break;
     }
 
-    sendAllStrings(_midi.setProgram(0, _programs[(uint8_t)_program].number));
+    sendAllStrings(*_midi.setProgram(0, _programs[(uint8_t)_program].number));
   }
 
   void allNotesOff() {
@@ -168,7 +168,7 @@ public:
     }
 
     stop();
-    sendAllStrings(_midi.setControlChange(0, V2MIDI::CC::AllNotesOff, 0));
+    sendAllStrings(*_midi.setControlChange(0, V2MIDI::CC::AllNotesOff, 0));
   }
 
 private:
@@ -236,7 +236,7 @@ private:
     _program = Program::Bow;
     _force.reset();
     stop();
-    sendAllStrings(_midi.setSystem(V2MIDI::Packet::Status::SystemReset));
+    sendAllStrings(*_midi.setSystem(V2MIDI::Packet::Status::SystemReset));
   }
 
   void routeStrings(uint8_t note, uint8_t velocity) {
@@ -245,12 +245,12 @@ private:
     // Free string.
     if (velocity == 0) {
       if (_route.notes[0] == note) {
-        sendString(0, _midi.setNote(0, note, 0));
+        sendString(0, *_midi.setNote(0, note, 0));
         _route.notes[0] = 0;
       }
 
       if (_route.notes[1] == note) {
-        sendString(1, _midi.setNote(0, note, 0));
+        sendString(1, *_midi.setNote(0, note, 0));
         _route.notes[1] = 0;
       }
 
@@ -259,7 +259,7 @@ private:
 
     // Try first string.
     if (_route.notes[0] == 0) {
-      sendString(0, _midi.setNote(0, note, velocity));
+      sendString(0, *_midi.setNote(0, note, velocity));
       _route.notes[0] = note;
       _route.last     = 0;
       return;
@@ -267,7 +267,7 @@ private:
 
     // Try second string.
     if (_route.notes[1] == 0) {
-      sendString(1, _midi.setNote(0, note, velocity));
+      sendString(1, *_midi.setNote(0, note, velocity));
       _route.notes[1] = note;
       _route.last     = 1;
       return;
@@ -276,15 +276,15 @@ private:
     // Both strings are busy, stop the earlier note, play the new one.
     if (_route.last == 0) {
       playLight(_route.notes[1], 0);
-      sendString(1, _midi.setNote(0, _route.notes[1], 0));
-      sendString(1, _midi.setNote(0, note, velocity));
+      sendString(1, *_midi.setNote(0, _route.notes[1], 0));
+      sendString(1, *_midi.setNote(0, note, velocity));
       _route.notes[1] = note;
       _route.last     = 1;
 
     } else {
       playLight(_route.notes[0], 0);
-      sendString(0, _midi.setNote(0, _route.notes[0], 0));
-      sendString(0, _midi.setNote(0, note, velocity));
+      sendString(0, *_midi.setNote(0, _route.notes[0], 0));
+      sendString(0, *_midi.setNote(0, note, velocity));
       _route.notes[0] = note;
       _route.last     = 0;
     }
@@ -293,21 +293,21 @@ private:
   void routeStringsAftertouch(uint8_t note, uint8_t pressure) {
     if (_route.notes[0] == note) {
       playLight(note, pressure);
-      sendString(0, _midi.setAftertouchChannel(0, pressure));
+      sendString(0, *_midi.setAftertouchChannel(0, pressure));
     }
 
     if (_route.notes[1] == note) {
       playLight(note, pressure);
-      sendString(1, _midi.setAftertouchChannel(0, pressure));
+      sendString(1, *_midi.setAftertouchChannel(0, pressure));
     }
   }
 
-  void sendString(uint8_t n, V2MIDI::Packet* packet) {
-    _link.send(packet);
-    Socket.send(n, &_link);
+  void sendString(uint8_t n, const V2MIDI::Packet& midi) {
+    V2Link::Packet p(n, midi);
+    Socket.send(p);
   }
 
-  void sendAllStrings(V2MIDI::Packet* packet) {
+  void sendAllStrings(const V2MIDI::Packet& packet) {
     sendString(0, packet);
     sendString(1, packet);
   }
@@ -327,37 +327,37 @@ private:
     switch (controller) {
       case (uint8_t)CC::Volume:
         _volume = value;
-        sendAllStrings(_midi.setControlChange(0, controller, value));
+        sendAllStrings(*_midi.setControlChange(0, controller, value));
         break;
 
       case (uint8_t)CC::FingerSpeed:
         _speedMax = (float)(value + 1) / 128.f;
-        sendAllStrings(_midi.setControlChange(0, controller, value));
+        sendAllStrings(*_midi.setControlChange(0, controller, value));
         break;
 
       case (uint8_t)CC::VibratoRate:
         _vibrato.rate = (float)value / 127.f;
-        sendAllStrings(_midi.setControlChange(0, controller, value));
+        sendAllStrings(*_midi.setControlChange(0, controller, value));
         break;
 
       case (uint8_t)CC::VibratoDepth:
         _vibrato.depth = (float)value / 127.f;
-        sendAllStrings(_midi.setControlChange(0, controller, value));
+        sendAllStrings(*_midi.setControlChange(0, controller, value));
         break;
 
       case (uint8_t)CC::BowPressure:
         _pressureMax = (float)(value + 1) / 128.f;
-        sendAllStrings(_midi.setControlChange(0, controller, value));
+        sendAllStrings(*_midi.setControlChange(0, controller, value));
         break;
 
       case (uint8_t)CC::BowSpeed:
         _rotationMax = (float)(value + 1) / 128.f;
-        sendAllStrings(_midi.setControlChange(0, controller, value));
+        sendAllStrings(*_midi.setControlChange(0, controller, value));
         break;
 
       case (uint8_t)CC::BowReverse:
         _reverse = value > 63;
-        sendAllStrings(_midi.setControlChange(0, controller, value));
+        sendAllStrings(*_midi.setControlChange(0, controller, value));
         break;
 
       case (uint8_t)CC::Light:
@@ -402,14 +402,14 @@ private:
     if (channel != 0)
       return;
 
-    sendAllStrings(_midi.setAftertouchChannel(0, pressure));
+    sendAllStrings(*_midi.setAftertouchChannel(0, pressure));
   }
 
   void handlePitchBend(uint8_t channel, int16_t value) override {
     if (channel != 0)
       return;
 
-    sendAllStrings(_midi.setPitchBend(0, value));
+    sendAllStrings(*_midi.setPitchBend(0, value));
   }
 
   void handleSystemReset() override {
@@ -561,15 +561,16 @@ private:
 static class MIDI {
 public:
   void loop() {
-    if (!Device.usb.midi.receive(&_midi))
+    if (!Device.usb.midi.receive(_midi))
       return;
 
-    if (_midi.getPort() == 0) {
+    if (_midi.port == 0) {
       Device.dispatch(&Device.usb.midi, &_midi);
 
     } else {
-      _midi.setPort(_midi.getPort() - 1);
-      Socket.send(&_midi);
+      V2Link::Packet p(_midi.port - 1, _midi);
+      p.midi.port = 0;
+      Socket.send(p);
     }
   }
 
@@ -586,17 +587,10 @@ private:
   V2MIDI::Packet _midi{};
 
   // Forward children device events to the host
-  void receiveSocket(V2Link::Packet* packet) override {
-    if (packet->getType() == V2Link::Packet::Type::MIDI) {
-      uint8_t address = packet->getAddress();
-      if (address == 0x0f)
-        return;
-
-      if (Device.usb.midi.connected()) {
-        packet->receive(&_midi);
-        _midi.setPort(address + 1);
-        Device.usb.midi.send(&_midi);
-      }
+  void receiveSocket(V2Link::Packet& p) override {
+    if (p.type == V2Link::Packet::Type::MIDI) {
+      p.midi.port = p.address;
+      Device.usb.midi.send(p.midi);
     }
   }
 } Link;
@@ -618,8 +612,8 @@ private:
         for (uint8_t i = 0; i < 8; i++) {
           V2MIDI::Packet midi;
 
-          midi.setPort(i);
-          Socket.send(midi.setControlChange(0, V2MIDI::CC::AllNotesOff, 0));
+          midi.port = i;
+          Socket.send(*midi.setControlChange(0, V2MIDI::CC::AllNotesOff, 0));
         }
         break;
     }
