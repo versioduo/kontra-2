@@ -7,7 +7,7 @@
 #include <V2PowerSupply.h>
 #include <V2Stepper.h>
 
-V2DEVICE_METADATA("com.versioduo.kontra-2-string", 49, "versioduo:samd:step");
+V2DEVICE_METADATA("com.versioduo.kontra-2-string", 50, "versioduo:samd:step");
 
 static constexpr uint8_t       notesMax  = 30;
 static constexpr uint8_t       nSteppers = 4;
@@ -747,7 +747,7 @@ private:
       JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "note";
       setting["title"]   = "Notes";
-      setting["label"]   = "Start";
+      setting["label"]   = "Note";
       setting["default"] = ConfigurationDefault.notes.start;
       setting["path"]    = "notes/start";
     }
@@ -755,18 +755,18 @@ private:
       JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "number";
       setting["label"]   = "Count";
+      setting["text"]    = "Semitones";
       setting["min"]     = 1;
       setting["max"]     = notesMax;
       setting["default"] = ConfigurationDefault.notes.count;
       setting["path"]    = "notes/count";
     }
-
     {
       JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "number";
-
       setting["title"]   = "Bow";
       setting["label"]   = "Home";
+      setting["text"]    = "Millimeter";
       setting["min"]     = 0;
       setting["max"]     = 10;
       setting["step"]    = 0.1;
@@ -776,8 +776,8 @@ private:
     {
       JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "number";
-
       setting["label"]   = "Minimum";
+      setting["text"]    = "Millimeter";
       setting["min"]     = 0;
       setting["max"]     = 10;
       setting["step"]    = 0.1;
@@ -787,8 +787,8 @@ private:
     {
       JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "number";
-
       setting["label"]   = "Maximum";
+      setting["text"]    = "Millimeter";
       setting["min"]     = 0;
       setting["max"]     = 10;
       setting["step"]    = 0.1;
@@ -799,9 +799,9 @@ private:
     {
       JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "number";
-
       setting["title"]   = "String";
       setting["label"]   = "Length";
+      setting["text"]    = "Millimeter";
       setting["min"]     = 1;
       setting["max"]     = 1200;
       setting["step"]    = 0.1;
@@ -811,8 +811,8 @@ private:
     {
       JsonObject setting = json.add<JsonObject>();
       setting["type"]    = "number";
-
       setting["label"]   = "Home";
+      setting["text"]    = "Millimeter";
       setting["min"]     = 0;
       setting["max"]     = 50;
       setting["step"]    = 0.1;
