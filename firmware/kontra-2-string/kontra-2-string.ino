@@ -7,15 +7,15 @@
 #include <V2PowerSupply.h>
 #include <V2Stepper.h>
 
-V2DEVICE_METADATA("com.versioduo.kontra-2-string", 50, "versioduo:samd:step");
+V2DEVICE_METADATA("com.versioduo.kontra-2-string", 51, "versioduo:samd:step");
 
-static constexpr uint8_t       notesMax  = 30;
-static constexpr uint8_t       nSteppers = 4;
-static V2LED::WS2812           LED(nSteppers, PIN_LED_WS2812, &sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
-static V2Link::Port            Plug(&SerialPlug);
-static V2Link::Port            Socket(&SerialSocket);
-static V2Base::Timer::Periodic Timer(2, 200000);
-static V2Base::Analog::ADC     ADC(V2Base::Analog::ADC::getID(PIN_VOLTAGE_SENSE));
+static constexpr uint8_t        notesMax  = 30;
+static constexpr uint8_t        nSteppers = 4;
+static V2LED::WS2812<nSteppers> LED(PIN_LED_WS2812, sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
+static V2Link::Port             Plug(&SerialPlug);
+static V2Link::Port             Socket(&SerialSocket);
+static V2Base::Timer::Periodic  Timer(2, 200000);
+static V2Base::Analog::ADC      ADC(V2Base::Analog::ADC::getID(PIN_VOLTAGE_SENSE));
 
 static class Stepper : public V2Stepper::Motor {
 public:
@@ -32,15 +32,15 @@ private:
   void handleMovement(Move move) override {
     switch (move) {
       case Move::Forward:
-        LED.setHSV(_index, V2Colour::Cyan, 1, 0.4);
+        LED.hsv({V2Colour::Cyan, 1, 0.4}, _index);
         break;
 
       case Move::Reverse:
-        LED.setHSV(_index, V2Colour::Orange, 1, 0.4);
+        LED.hsv({V2Colour::Orange, 1, 0.4}, _index);
         break;
 
       case Move::Stop:
-        LED.setHSV(_index, V2Colour::Green, 1, 0.2);
+        LED.hsv({V2Colour::Green, 1, 0.2}, _index);
         break;
     }
   }
@@ -105,20 +105,20 @@ private:
   void handleNotify(float voltage) override {
     // Power interruption, or commands without a power connection show yellow LEDs.
     if (voltage < config.min) {
-      LED.splashHSV(0.5, V2Colour::Yellow, 1, 0.5);
+      LED.flash({V2Colour::Yellow, 1, 0.5}, 0.5);
       return;
     }
 
     // Over-voltage shows red LEDs.
     if (voltage > config.max) {
-      LED.splashHSV(0.5, V2Colour::Red, 1, 1);
+      LED.flash({V2Colour::Red, 1, 1}, 0.5);
       return;
     }
 
     // The number of green LEDs shows the voltage.
     float   fraction = voltage / (float)config.max;
     uint8_t n        = ceil((float)nSteppers * fraction);
-    LED.splashHSV(0.5, 0, n, V2Colour::Green, 1, 0.5);
+    LED.flash({V2Colour::Green, 1, 0.5}, 0.5, 0, n);
   }
 } Power;
 
@@ -973,7 +973,7 @@ void setup() {
   SPI.begin();
 
   LED.begin();
-  LED.setMaxBrightness(0.5);
+  LED.brightnessMax(0.5);
 
   Plug.begin();
   Socket.begin();

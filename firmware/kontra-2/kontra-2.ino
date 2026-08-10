@@ -6,17 +6,24 @@
 #include <V2MIDI.h>
 #include <V2Music.h>
 
-V2DEVICE_METADATA("com.versioduo.kontra-2", 33, "versioduo:samd:control");
+V2DEVICE_METADATA("com.versioduo.kontra-2", 34, "versioduo:samd:control");
 
 static constexpr uint8_t notesMax = 30;
-static V2LED::WS2812     LED(2, PIN_LED_WS2812, &sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
-static V2LED::WS2812     LEDExt(41, PIN_LED_WS2812_EXT, &sercom1, SPI_PAD_0_SCK_1, PIO_SERCOM);
+static V2LED::WS2812<2>  LED(PIN_LED_WS2812, sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
+static V2LED::WS2812<41> LEDExt(PIN_LED_WS2812_EXT, sercom1, SPI_PAD_0_SCK_1, PIO_SERCOM);
 static V2Link::Port      Socket(&SerialSocket);
 
 // The button switches the state with a multi-click long-press.
 static class Manual {
 public:
-  enum class Mode { Notes, Song, Test, Tune, Turn } mode{};
+  enum class Mode {
+    Notes,
+    Song,
+    Test,
+    Tune,
+    Turn,
+  } mode{};
+
   Mode getMode() const {
     return _mode;
   }
@@ -27,12 +34,12 @@ public:
     switch (_mode) {
       case Mode::Notes:
         LED.reset();
-        LED.setHSV(V2Colour::Orange, 1, 0.25);
+        LED.hsv({V2Colour::Orange, 1, 0.25});
         break;
 
       case Mode::Song:
         LED.reset();
-        LED.setBrightness(0.25);
+        LED.brightness(0.25);
         break;
 
       case Mode::Test:
@@ -42,23 +49,23 @@ public:
 
       case Mode::Tune:
         LED.reset();
-        LED.setHSV(V2Colour::Magenta, 1, 0.25);
+        LED.hsv({V2Colour::Magenta, 1, 0.25});
         break;
 
       case Mode::Turn:
         LED.reset();
-        LED.setHSV(V2Colour::Cyan, 1, 0.25);
+        LED.hsv({V2Colour::Cyan, 1, 0.25});
         break;
     }
   }
 
-  void setColour(V2Colour::Hue colour) {
+  void setColour(float colour) {
     LED.reset();
-    LED.setHSV(colour, 1, 0.25);
+    LED.hsv({colour, 1, 0.25});
   }
 
-  void splashColour(V2Colour::Hue colour) {
-    LED.splashHSV(0.5, colour, 1, 0.25);
+  void flashColour(float colour) {
+    LED.flash({colour, 1, 0.25}, 0.5);
   }
 
 private:
@@ -115,12 +122,12 @@ public:
       n = 17 + ((n - 18) * 2) + 1;
 
     if (velocity == 0) {
-      LEDExt.setBrightness(n, 0);
+      LEDExt.brightness(0, n);
       return;
     }
 
     const float fraction = (float)velocity / 127;
-    LEDExt.setHSV(n, V2Colour::Yellow, 0.2, fraction * _lightMax);
+    LEDExt.hsv({V2Colour::Yellow, 0.2, fraction * _lightMax}, n);
   }
 
   void playNote(uint8_t note, uint8_t velocity) {
@@ -154,7 +161,7 @@ public:
 
       case Manual::Mode::Song:
       case Manual::Mode::Test:
-        Manual.splashColour(_programs[(uint8_t)_program].colour);
+        Manual.flashColour(_programs[(uint8_t)_program].colour);
         break;
     }
 
@@ -175,9 +182,9 @@ private:
   V2Music::ForcedStop _force;
 
   const struct {
-    uint8_t       number;
-    const char*   name;
-    V2Colour::Hue colour;
+    uint8_t     number;
+    const char* name;
+    float       colour;
   } _programs[(uint8_t)Program::_count]{
     [(uint8_t)Program::Bow] =
       {
@@ -740,9 +747,9 @@ void setup() {
   Serial.begin(9600);
 
   LED.begin();
-  LED.setMaxBrightness(0.5);
+  LED.brightnessMax(0.5);
   LEDExt.begin();
-  LEDExt.setMaxBrightness(0.75);
+  LEDExt.brightnessMax(0.75);
 
   Socket.begin();
   Device.link = &Link;
@@ -752,7 +759,6 @@ void setup() {
   setSerialPriority(&SerialSocket, 2);
 
   Button.begin();
-  Device.usb.midi.setPortName(1, "Main");
   Device.usb.midi.setPortName(2, "String 1");
   Device.usb.midi.setPortName(3, "String 2");
   Device.begin();
