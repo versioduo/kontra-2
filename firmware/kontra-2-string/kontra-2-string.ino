@@ -7,13 +7,13 @@
 #include <V2PowerSupply.h>
 #include <V2Stepper.h>
 
-V2DEVICE_METADATA("com.versioduo.kontra-2-string", 51, "versioduo:samd:step");
+V2DEVICE_METADATA("com.versioduo.kontra-2-string", 52, "versioduo:samd:step");
 
 static constexpr uint8_t        notesMax  = 30;
 static constexpr uint8_t        nSteppers = 4;
 static V2LED::WS2812<nSteppers> LED(PIN_LED_WS2812, sercom2, SPI_PAD_0_SCK_1, PIO_SERCOM);
-static V2Link::Port             Plug(&SerialPlug);
-static V2Link::Port             Socket(&SerialSocket);
+static V2Link::Port             Plug(&SerialPlug, PIN_SERIAL_PLUG_TX_ENABLE, "plug");
+static V2Link::Port             Socket(&SerialSocket, PIN_SERIAL_SOCKET_TX_ENABLE, "socket");
 static V2Base::Timer::Periodic  Timer(2, 200000);
 static V2Base::Analog::ADC      ADC(V2Base::Analog::ADC::getID(PIN_VOLTAGE_SENSE));
 
